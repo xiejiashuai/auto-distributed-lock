@@ -29,15 +29,22 @@ import java.util.concurrent.TimeUnit;
  * @author jiashuai.xie
  */
 @Aspect
-public class DistributedLockAspect {
+public class DistributedLockAspect implements Ordered {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedLockAspect.class);
+
+    private static final Integer DEFAULT_ASPECT_ORDER = 0;
 
     private final LockOperationExpressionEvaluator lockOperationExpressionEvaluator = new LockOperationExpressionEvaluator();
 
     @Pointcut("@annotation(com.aihuishou.framework.lock.aop.annotation.DistributedLock)")
     public void pointCut() {
     }
+
+    /**
+     * 切面顺序order
+     */
+    private Integer order = DEFAULT_ASPECT_ORDER;
 
     private RedisLockManager lockManager;
 
@@ -49,7 +56,7 @@ public class DistributedLockAspect {
     private ErrorHandlerStrategy errorHandlerStrategy = new DefaultErrorHandlerStrategy();
 
     @Around("pointCut()")
-    public Object distributedLock(ProceedingJoinPoint pjp) {
+    public Object distributedLock(ProceedingJoinPoint pjp) throws Throwable {
 
         Object result = null;
 
@@ -99,7 +106,7 @@ public class DistributedLockAspect {
             result = pjp.proceed(args);
 
 
-        } catch (Throwable e) {
+        } catch (DistributedLockUnGettedException e) {
 
             LOGGER.error("DistributedLockAspect invoke target method occur exception,msg:{}", e.getMessage(), e);
 
@@ -160,5 +167,16 @@ public class DistributedLockAspect {
 
     public void setLockManager(RedisLockManager lockManager) {
         this.lockManager = lockManager;
+    }
+
+    public void setOrder(Integer order) {
+        if (null != order) {
+            this.order = order;
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return order;
     }
 }

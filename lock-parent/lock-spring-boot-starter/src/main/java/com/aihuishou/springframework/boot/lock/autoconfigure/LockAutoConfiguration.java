@@ -21,12 +21,23 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @ConditionalOnBean(value = {Mark.Marker.class,RedisTemplate.class})
 public class LockAutoConfiguration {
 
+    @Value("${spring.locker.aspect.order:}")
+    private Integer order;
+
+    @Autowired(required = false)
+    private List<DistributedLockerPostProcessor> distributedLockerPostProcessors;
+
 
     @Bean
     @ConditionalOnMissingBean(DistributedLockAspect.class)
     public DistributedLockAspect distributedLockAspect(RedisLockManager redisLockManager){
         DistributedLockAspect distributedLockAspect=new DistributedLockAspect();
         distributedLockAspect.setLockManager(redisLockManager);
+        if (!CollectionUtils.isEmpty(distributedLockerPostProcessors)){
+            AnnotationAwareOrderComparator.sort(distributedLockerPostProcessors);
+            distributedLockAspect.setDistributedLockerPostProcessors(distributedLockerPostProcessors);
+        }
+        distributedLockAspect.setOrder(order);
         return distributedLockAspect;
     }
 
